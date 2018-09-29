@@ -65,7 +65,7 @@ function runCompile(ast) {
         throw new ParseError('No C code definition.');
     }
     
-    const header = fs.readFileSync('c_header.h');
+    const header = fs.readFileSync(__dirname + '/c_header.h');
     
     const codeFile = tmp.fileSync({ postfix: '.cpp' });
     fs.writeFileSync(codeFile.name, header + "\n" + code);
