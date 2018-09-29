@@ -34,7 +34,6 @@ try {
 
     process.exitCode = 0;
 } catch (e) {
-    console.log(e.getPrevious());
     console.log(e);
 
     process.exitCode = 1;
