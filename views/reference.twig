@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>FiveM Native Reference</title>
+<style type="text/css">
+* {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	max-width: 720px;
+	margin: 1em auto;
+	line-height: 1.6em;
+	font-size: 16px;
+	font-family: "Segoe UI", "Roboto", sans-serif;
+	color: #444;
+
+	height: 1000000px;
+}
+
+main {
+	margin-top: 2em;
+}
+
+aside + main {
+	margin-top: 0;
+}
+
+section {
+	border-bottom: 1px solid #eee;
+}
+
+section {
+	padding-bottom: 1em;
+	margin-top: 1em;
+}
+
+.desc {
+	white-space: pre-wrap;
+}
+
+h1 {
+	margin-bottom: 1em;
+}
+
+h2 {
+	display: inline-block;
+	margin-bottom: 0.4em;
+}
+
+h2 + a {
+	color: #09f;
+	text-decoration: none;
+}
+
+h2 + a:hover {
+	border-bottom: 1px solid #09f;
+}
+
+div.code {
+	border-top: 1px solid #ccc;
+	padding-top: 0.4em;
+	padding-bottom: 0.4em;
+	display: block;
+}
+
+div.code pre {
+	white-space: pre-wrap;
+}
+
+#filter-box {
+	float: right;
+}
+
+ul {
+	margin-left: 1.5em;
+}
+
+aside {
+	display: none;
+
+	position: fixed;
+	top: 10px;
+	left: calc(50% + 360px + 25px);
+	bottom: 0px;
+
+	width: 300px;
+
+	overflow: hidden;
+	overflow-y: auto;
+
+	max-height: 100%;
+}
+
+aside ul {
+	list-style-type: none;
+	padding: 0px;
+	margin: 0px;
+}
+
+aside > ul > li > a {
+	font-weight: bold;
+	color: #0066ff;
+	text-decoration: none;
+}
+
+aside ul ul li a {
+	color: #000;
+	text-decoration: none;
+	font-size: 80%;
+}
+
+aside ul ul li.active a {
+	font-weight: bold;
+}
+
+@media screen and (min-width: 1020px) {
+	aside {
+		display: block;
+	}
+}
+
+.hljs-comment {
+	font-style: italic;
+}
+
+pre {
+	white-space: pre-wrap;
+}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github-gist.min.css">
+</head>
+<body>
+<input placeholder="Filter (or press T)" type="text" id="filter-box">
+
+<aside>
+<ul>
+{% for namespace, namespaceContent in natives|cast_to_array|sort_array %}
+<li id="li_{{namespace}}"><a href="#_n_{{namespace}}">{{ namespace }}</a>
+<ul>
+{% for hash, native in namespaceContent|cast_to_array|sort_name %}
+{% if native.name is not empty %}
+{% if native.name is empty %}
+{% set nativeName = hash %}
+{% else %}
+{% set nativeName = native.name %}
+{% endif %}
+
+<li id="li_{{nativeName}}"><a href="#_{{hash}}">{{ native.name }}</a></li>
+{% endif %}
+{% endfor %}
+</ul>
+{% endfor %}
+</li>
+</aside>
+
+{# namespaces #}
+{% for namespace, namespaceContent in natives|cast_to_array|sort_array %}
+<main data-name="{{ namespace }}" id="_n_{{ namespace }}">
+<h1>{{ namespace }}</h1>
+</main>
+{# natives in namespace #}
+{% for hash, native in namespaceContent|cast_to_array|sort_name %}
+{# native name, use hash if no name #}
+{% if native.name is empty %}
+{% set nativeName = hash %}
+{% else %}
+{% set nativeName = native.name %}
+{% endif %}
+
+{# html section #}
+<section class="native" id="_{{ hash }}" data-native="{{ nativeName }}" data-ns="{{ namespace }}">
+<h2>{{ nativeName }}</h2> <a href="#_{{ hash }}">#</a>
+<div class="code code-c">
+{%- autoescape false -%}
+{%- codeblock -%}
+// {{ hash }} {{ native.jhash }}
+// {{ nativeName | makenative }}
+{{ native.results }} {{ nativeName }}(
+{%- for param in native.params|cast_to_array -%}
+		{{ param.type }} {{ param.name }}
+{%- if not loop.last -%}
+	, {% endif -%}
+{%- endfor -%}
+);
+{%- endcodeblock -%}
+{%- endautoescape -%}
+</div>
+{%- if native.description -%}
+<div class="desc">
+{%- autoescape false -%}
+{{- native.description|mdify -}}
+{%- if native.params is not empty -%}
+{%- if native.params[0].description is not empty -%}
+<strong>Parameters:</strong><br><ul>
+{%- for param in native.params|cast_to_array -%}
+<li><strong>{{param.name}}</strong>: {{param.description|mdify|nop}}</li>
+{%- endfor -%}
+</ul>
+{%- endif -%}
+{%- endif -%}
+{%- if native.resultsDescription is not empty -%}
+<br><strong>Returns:</strong> {{native.resultsDescription|mdify|nop}}
+{%- endif -%}
+{%- endautoescape -%}
+</div>
+{%- endif -%}
+{%- if native.apiset is not empty -%}
+<p><strong>CitizenFX API set:</strong> {{ native.apiset | pascalcase }}</p>
+{%- endif -%}	
+{%- if native.aliases is not empty -%}
+{%- for alias in native.aliases %}
+{%- if not (alias starts with "0x") -%}
+<p><strong>Old name:</strong> {{ alias }}</p>
+{% endif -%}
+{%- endfor -%}
+{%- endif -%}
+</section>
+{%- endfor -%}
+{% endfor %}
+
+<script type="text/javascript">
+(() => {
+	const fb = document.getElementById('filter-box');
+	const elements = document.querySelectorAll('.native');
+
+	const elementsByName = [];
+
+	for (const el of elements) {
+		elementsByName.push([ el.dataset.native, el.dataset.ns, el, document.querySelector('#li_' + el.dataset.native) ]);
+	}
+
+	const ns = document.querySelectorAll('main');
+	const nsByName = [];
+
+	for (const el of ns) {
+		nsByName.push([ el.dataset.name, el, document.querySelector('#li_' + el.dataset.name) ]);
+	}
+
+	fb.addEventListener('keyup', function(ev) {
+		const text = fb.value;
+		const re = new RegExp(text, 'i');
+
+		const activeNs = {};
+
+		elementsByName.map(a => {
+			const show = (re.exec(a[0]));
+
+			if (show) {
+				activeNs[a[1]] = true;
+			}
+
+			// this is really fun when everything becomes block... layouting for the whole family
+			a[2].style.display = show ? 'block' : 'none';
+
+			if (a[3]) {
+				a[3].style.display = show ? 'block' : 'none';
+			}
+		});
+
+		nsByName.map(a => {
+			a[1].style.display = (a[0] in activeNs) ? 'block' : 'none';
+			a[2].style.display = (a[0] in activeNs) ? 'block' : 'none';
+		});
+	});
+
+	document.addEventListener('keyup', function(ev) {
+		if (fb !== document.activeElement && ev.key === 't') {
+			fb.focus();
+
+			ev.preventDefault();
+		}
+	});
+
+	let rectCache = {};
+
+	document.addEventListener('scroll', function(ev) {
+		const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
+
+		window.requestAnimationFrame(function() {
+			let curNs;
+
+			nsByName.map((a, i) => {
+				const rect = a[1].getBoundingClientRect();
+				const rect2 = nsByName[i + 1] ? nsByName[i + 1][1].getBoundingClientRect() : { top: 999999 };
+				const isInView = (scrollTop >= (rect.top - 5 + scrollTop) && scrollTop < (rect2.top + scrollTop));
+
+				if (isInView) {
+					curNs = a[0];
+				}
+
+				document.querySelector('#li_' + a[0] + ' ul').style.display = (isInView) ? 'block' : 'none';
+			});
+
+			for (const e of document.querySelectorAll('ul li.active')) {
+				e.classList.remove('active');
+			}
+
+			elementsByName.map(a => {
+				if (a[1] == curNs) {
+					let rect = rectCache[a[2].id];
+
+					if (!rect) {
+						const lrect = a[2].getBoundingClientRect();
+						rect = { top: lrect.top + window.scrollY, bottom: lrect.bottom + window.scrollY };
+						rectCache[a[2].id] = rect;
+					}
+
+					const isInView = (scrollTop >= (rect.top - 5) && scrollTop < (rect.bottom));
+
+					const el = a[3];
+
+					if (isInView && el) {
+						el.classList.add('active');
+					}
+				}
+			});
+		});
+	});
+
+	document.addEventListener('load', () =>
+	{
+		rectCache = {};
+	});
+})();
+</script>
+</body>
+</html>

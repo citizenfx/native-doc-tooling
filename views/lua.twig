@@ -1,0 +1,61 @@
+-- Native definitions
+{# namespaces #}
+{% for namespace, namespaceContent in natives|cast_to_array %}
+{# natives in namespace #}
+{% for hash, native in namespaceContent|cast_to_array %}
+{# native name, use hash if no name #}
+{% if native.name is empty %}
+{% set nativeName = hash %}
+{% else %}
+{% set nativeName = native.name %}
+{% endif %}
+
+native "{{ nativeName }}"
+{% if native.manualHash %}
+    hash "{{ hash }}"
+{% endif %}
+{# native jenkins hash? #}
+{% if native.jhash is not empty %}
+	jhash ({{ native.jhash }})
+{% endif %}
+{# native parameters #}
+{% if native.params is not empty %}
+	arguments {
+{% for param in native.params|cast_to_array %}
+		{{ param.type|normalize_type }} "{{ param.name }}",
+{% if not loop.last %}
+{% endif %}
+{% endfor %}
+	}
+{% endif %}
+{% if native.aliases is not empty %}
+{% for alias in native.aliases|cast_to_array %}
+	alias "{{ alias }}"
+{% endfor %}
+{% endif %}
+	ns "{{ native.ns }}"
+{% if native.apiset %}
+    apiset "{{ native.apiset }}"
+{% endif %}
+{# native result type #}
+{% if native.results %}
+	returns "{{ native.results|normalize_type }}"
+{% endif %}
+{# description of this native #}
+	doc [[!
+{% if native.description is not empty %}
+<summary>
+{{ native.description }}
+</summary>
+{% endif %}
+{% for param in native.params|cast_to_array %}
+{% if param.description is not empty %}
+<param name="{{ param.name }}">{{ param.description }}</param>
+{% endif %}
+{% endfor %}
+{% if native.resultsDescription is not empty %}
+<returns>{{ native.resultsDescription }}</returns>
+{% endif %}
+	]]
+{% endfor %}
+{% endfor %}
