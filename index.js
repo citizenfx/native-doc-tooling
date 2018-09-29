@@ -33,6 +33,7 @@ let ret = 0;
 recursive(process.argv[2], (err, files) => {
     for (const file of files) {
         if (!file.endsWith('.md') || file.endsWith('README.md')) {
+            ++ret;
             continue;
         }
 
