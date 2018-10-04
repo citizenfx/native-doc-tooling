@@ -1,5 +1,5 @@
 const fs = require('fs');
-const natives = JSON.parse(fs.readFileSync('natives_test.json'));
+let natives = JSON.parse(fs.readFileSync('natives_test.json'));
 
 const Twing = require('twing');
 
@@ -134,6 +134,10 @@ env.addTokenParser(new CodeBlockTokenParser());
 env.addExtension(new CodeBlockHighlighter(), 'CodeBlockHighlighter');
 
 const templateName = process.argv.length >= 3 ? process.argv[2] : 'lua';
+
+if (process.argv.length >= 4 && process.argv[3] == 'CFX') {
+	natives = { CFX: natives.CFX };
+}
 
 try {
     const out = env.render(templateName + '.twig', { natives });
