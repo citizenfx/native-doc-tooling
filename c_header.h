@@ -35,3 +35,6 @@ typedef struct
 	float z;
 	DWORD _paddingz;
 } Vector3;
+
+typedef int func;
+typedef int object;
