@@ -57,7 +57,11 @@ function runCompile(ast) {
     
     findOfType(ast, 'code', (node) => {
         if (node.lang === 'c') {
-            code = node.value;
+			if (code === '') {
+				code = node.value;
+			} else {
+				node.lang = 'cpp';
+			}
         }
     })
     
@@ -180,7 +184,7 @@ function runCompile(ast) {
     
     heading(ast, native.name, (_, nodes) => {
         const para = {
-            type: 'paragraph',
+            type: 'root',
             children: nodes.filter(a => a.type !== 'code' || (a.type === 'code' && a.lang !== 'c'))
         };
 
