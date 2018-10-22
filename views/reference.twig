@@ -36,8 +36,17 @@ section {
 	margin-top: 1em;
 }
 
-.desc {
-	white-space: pre-wrap;
+p {
+	margin-block-start: 1em;
+	margin-block-end: 1em;
+}
+
+p.old {
+	margin: 0;
+}
+
+p:first-child {
+	margin-block-start: 0;
 }
 
 h1 {
@@ -212,7 +221,7 @@ pre {
 {%- if native.aliases is not empty -%}
 {%- for alias in native.aliases %}
 {%- if not (alias starts with "0x") -%}
-<p><strong>Old name:</strong> {{ alias }}</p>
+<p class="old"><strong>Old name:</strong> {{ alias }}</p>
 {% endif -%}
 {%- endfor -%}
 {%- endif -%}
