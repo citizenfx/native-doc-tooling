@@ -1,8 +1,8 @@
 -- Native definitions
 {# namespaces #}
-{% for namespace, namespaceContent in natives|cast_to_array %}
+{% for namespace, namespaceContent in natives|cast_to_array|sort_name %}
 {# natives in namespace #}
-{% for hash, native in namespaceContent|cast_to_array %}
+{% for hash, native in namespaceContent|cast_to_array|sort_name %}
 {# native name, use hash if no name #}
 {% if native.name is empty %}
 {% set nativeName = hash %}

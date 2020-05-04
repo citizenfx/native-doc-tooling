@@ -143,6 +143,6 @@ try {
     const out = env.render(templateName + '.twig', { natives });
     process.stdout.write(out);
 } catch (e) {
-    console.log(e.getPrevious());
-    console.log(e);
+    console.error(e);
+    process.exit(1);
 }
