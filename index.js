@@ -30,13 +30,8 @@ const workers = workerFarm(require.resolve('./worker'));
 
 let ret = 0;
 
-recursive(process.argv[2], (err, files) => {
+recursive(process.argv[2], ['.*', '!*.md','README.md'], (err, files) => {
     for (const file of files) {
-        if (!file.endsWith('.md') || file.endsWith('README.md')) {
-            ++ret;
-            continue;
-        }
-
         workers(file, (err, nativeData) => {
             if (err) {
                 console.log(err);
