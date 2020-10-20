@@ -2,6 +2,7 @@ const fs = require('fs');
 let natives = JSON.parse(fs.readFileSync('natives_test.json'));
 
 const Twing = require('twing');
+const { TokenType } = require('twig-lexer');
 
 const loader = new Twing.TwingLoaderFilesystem(__dirname + '/views/');
 
@@ -11,11 +12,11 @@ const env = new Twing.TwingEnvironment(loader, {
 
 const objectify = (obj, [k, v]) => ({ ...obj, [k]: v });
 
-env.addFilter(new Twing.TwingFilter('cast_to_array', input => input));
-env.addFilter(new Twing.TwingFilter('normalize_type', input => input.replace(/\*/g, 'Ptr')));
-env.addFilter(new Twing.TwingFilter('strip_author', input => input));
-env.addFilter(new Twing.TwingFilter('indent', input => input));
-env.addFilter(new Twing.TwingFilter('sort_array', input => {
+env.addFilter(new Twing.TwingFilter('cast_to_array', async input => input));
+env.addFilter(new Twing.TwingFilter('normalize_type', async input => input.replace(/\*/g, 'Ptr')));
+env.addFilter(new Twing.TwingFilter('strip_author', async input => input));
+env.addFilter(new Twing.TwingFilter('indent', async input => input));
+env.addFilter(new Twing.TwingFilter('sort_array', async input => {
     return Object.entries(input).sort(([a], [b]) => {
         const aKey = (a === 'CFX') ? 'AAAAAAACFX' : a;
         const bKey = (b === 'CFX') ? 'AAAAAAACFX' : b;
@@ -23,7 +24,7 @@ env.addFilter(new Twing.TwingFilter('sort_array', input => {
         return aKey.localeCompare(bKey);
     }).reduce(objectify, {});
 }));
-env.addFilter(new Twing.TwingFilter('sort_name', input => {
+env.addFilter(new Twing.TwingFilter('sort_name', async input => {
     return Object.entries(input).sort(([_, a], [_b, b]) => {
         // JS compare makes _ first, so sort order:
         // - a-z
@@ -44,19 +45,19 @@ env.addFilter(new Twing.TwingFilter('sort_name', input => {
     }).reduce(objectify, {});
 }));
 
-env.addFilter(new Twing.TwingFilter('makenative', input => {
+env.addFilter(new Twing.TwingFilter('makenative', async input => {
     return input.toLowerCase().replace('0x', 'n_0x')
         .replace(/_([a-z])/g, (sub, bit) => bit.toUpperCase())
         .replace(/^([a-z])/, (sub, bit) => bit.toUpperCase());
 }));
 
-env.addFilter(new Twing.TwingFilter('pascalcase', input => input.replace(/(?:\s|^)([a-z])/g, (sub, reg) => reg.toUpperCase())));
+env.addFilter(new Twing.TwingFilter('pascalcase', async input => input.replace(/(?:\s|^)([a-z])/g, (sub, reg) => reg.toUpperCase())));
 
 const remark = require('remark');
 const html = require('remark-html');
 const highlight = require('remark-highlight.js');
 
-env.addFilter(new Twing.TwingFilter('mdify', input => {
+env.addFilter(new Twing.TwingFilter('mdify', async input => {
     return remark()
         .use(highlight)
         .use(html)
@@ -64,7 +65,7 @@ env.addFilter(new Twing.TwingFilter('mdify', input => {
         .toString();
 }));
 
-env.addFilter(new Twing.TwingFilter('nop', input => {
+env.addFilter(new Twing.TwingFilter('nop', async input => {
     return input.replace(/<\/?p>/g, '');
 }));
 
@@ -76,17 +77,15 @@ class CodeBlockNode extends Twing.TwingNode {
     }
 
     compile(compiler) {
-        compiler.addDebugInfo(this);
+        compiler.write('let highlighter = this.environment.extensionSet.getExtension("CodeBlockHighlighter");\n');
 
-        compiler.write('let highlighter = this.extensions.get("CodeBlockHighlighter");\n');
-
-        compiler.write('Twing.obStart();\n');
+        compiler.write('outputBuffer.start();\n');
         compiler.subcompile(this.getNode('body'));
-        compiler.write('let body = Twing.obGetClean();\n');
+        compiler.write('let body = outputBuffer.getAndClean();\n');
 
         compiler.write('let code = highlighter.highlight(body);\n');
         
-        compiler.write('Twing.echo(`<figure class="code"><pre><code>${code}</code></pre></figure>`);');
+        compiler.write('outputBuffer.echo(`<figure class="code"><pre><code>${code}</code></pre></figure>`);');
     }
 }
 
@@ -95,18 +94,18 @@ class CodeBlockTokenParser extends Twing.TwingTokenParser {
         const parser = this.parser;
         const stream = parser.getStream();
 
-        while (!stream.getCurrent().test(Twing.TwingToken.BLOCK_END_TYPE)) {
+        while (!stream.getCurrent().test(TokenType.TAG_END)) {
             this.parseEncounteredToken(stream.getCurrent(), stream);
         }
 
-        stream.expect(Twing.TwingToken.BLOCK_END_TYPE);
+        stream.expect(TokenType.TAG_END);
 
         // seriously, PHP-like callables?!
         const body = parser.subparse([this, this.decideBlockEnd], true);
 
-        stream.expect(Twing.TwingToken.BLOCK_END_TYPE);
+        stream.expect(TokenType.TAG_END);
 
-        return new CodeBlockNode(body, token.getLine(), this.getTag());
+        return new CodeBlockNode(body, token.line, this.getTag());
     }
 
     parseEncounteredToken(token, stream) {
@@ -114,7 +113,7 @@ class CodeBlockTokenParser extends Twing.TwingTokenParser {
     }
 
     decideBlockEnd(token) {
-        return token.test(Twing.TwingToken.NAME_TYPE, 'endcodeblock');
+        return token.test(TokenType.NAME, 'endcodeblock');
     }
 
     getTag() {
@@ -139,10 +138,12 @@ if (process.argv.length >= 4 && process.argv[3] == 'CFX') {
 	natives = { CFX: natives.CFX };
 }
 
+(async() => {
 try {
-    const out = env.render(templateName + '.twig', { natives });
+    const out = await env.render(templateName + '.twig', { natives });
     process.stdout.write(out);
 } catch (e) {
     console.error(e);
     process.exit(1);
 }
+})();

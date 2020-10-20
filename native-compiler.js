@@ -169,7 +169,7 @@ function runCompile(ast) {
                 throw new ParseError('A parameter definition was found for a parameter that does not exist. Parameter name: ' + name);
             }
     
-            if (def.length > 0) {
+            if (def.length > 0 && def !== ':') {
                 paraRef.description = def;
             }
         })
