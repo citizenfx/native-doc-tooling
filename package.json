@@ -4,21 +4,26 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "highlight.js": "^9.12.0",
+    "highlight.js": "^10.3.1",
     "libclang": "https://github.com/citizenfx/node-libclang.git",
-    "mdast-util-heading-range": "^2.1.0",
+    "mdast-util-heading-range": "^2.1.4",
     "node-json-color-stringify": "^1.1.0",
     "recursive-readdir": "^2.2.2",
-    "remark": "^9.0.0",
-    "remark-frontmatter": "^1.3.0",
-    "remark-highlight.js": "^5.0.0",
-    "remark-html": "^8.0.0",
-    "remark-parse": "^5.0.0",
-    "remark-parse-yaml": "^0.0.1",
-    "remark-stringify": "^5.0.0",
-    "tmp": "^0.0.33",
-    "twing": "^1.3.1",
-    "unified": "^7.0.0",
-    "worker-farm": "^1.6.0"
+    "remark": "^13.0.0",
+    "remark-frontmatter": "^3.0.0",
+    "remark-highlight.js": "^6.0.0",
+    "remark-html": "^13.0.1",
+    "remark-parse": "^9.0.0",
+    "remark-parse-yaml": "^0.0.3",
+    "remark-stringify": "^9.0.0",
+    "tmp": "^0.2.1",
+    "twing": "^5.0.2",
+    "unified": "^9.2.0",
+    "worker-farm": "^1.7.0"
+  },
+  "resolutions": {
+    "ffi-napi": "^3.0.1",
+    "ref-napi": "^3.0.1",
+    "node-addon-api": "^3.0.2"
   }
 }

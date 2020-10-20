@@ -39,7 +39,7 @@ recursive(process.argv[2], ['.*', '!*.md','README.md'], (err, files) => {
                 return;
             }
 
-            const native = nativeData.contents;
+            const native = nativeData.result;
 
             if (!natives[native.ns]) {
                 natives[native.ns] = {};
@@ -65,6 +65,6 @@ recursive(process.argv[2], ['.*', '!*.md','README.md'], (err, files) => {
 //const ast = remark.parse(fileData);
 //console.log(ast);
 
-//const native = nativeData.contents;
+//const native = nativeData.result;
 
 //console.log(JSON.stringify(native, null, 4));

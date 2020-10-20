@@ -26,11 +26,11 @@ try {
     const nativeData = processor
         .processSync(fs.readFileSync(input));
 
-    if (nativeData.contents.hash === '0x0') {
+    if (nativeData.result.hash === '0x0') {
         throw new Error('No native hash was specified.');
     }
 
-    console.log(JSON.colorStringify(nativeData.contents, null, 4));
+    console.log(JSON.colorStringify(nativeData.result, null, 4));
 
     process.exitCode = 0;
 } catch (e) {
