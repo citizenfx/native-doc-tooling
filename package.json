@@ -7,6 +7,7 @@
     "highlight.js": "^10.3.1",
     "libclang": "https://github.com/citizenfx/node-libclang.git",
     "mdast-util-heading-range": "^2.1.4",
+    "minimatch": "^3.0.4",
     "node-gyp": "^7.1.2",
     "node-json-color-stringify": "^1.1.0",
     "recursive-readdir": "^2.2.2",
