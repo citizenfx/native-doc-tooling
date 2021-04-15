@@ -38,3 +38,8 @@ typedef struct
 
 typedef int func;
 typedef int object;
+
+#define since(ver) __attribute__((annotate("since:" #ver)))
+#define until(ver) __attribute__((annotate("until:" #ver)))
+#define cs_type(realType) __attribute__((annotate("cs_type:" #realType)))
+#define cs_omit __attribute__((annotate("cs_omit")))

@@ -22,9 +22,7 @@ native "{{ nativeName }}"
 {% if native.params is not empty %}
 	arguments {
 {% for param in native.params|cast_to_array %}
-		{{ param.type|normalize_type }} "{{ param.name }}",
-{% if not loop.last %}
-{% endif %}
+		{{ param.type|normalize_type }} "{{ param.name }}" [=[ {{ param.annotations | json_stringify }} ]=],
 {% endfor %}
 	}
 {% endif %}
@@ -36,6 +34,12 @@ native "{{ nativeName }}"
 	ns "{{ native.ns }}"
 {% if native.apiset %}
     apiset "{{ native.apiset }}"
+{% endif %}
+{% if native.game %}
+	game "{{ native.game }}"
+{% endif %}
+{% if native.annotations %}
+	annotations [=[ {{ native.annotations | json_stringify }} ]=]
 {% endif %}
 {# native result type #}
 {% if native.results %}

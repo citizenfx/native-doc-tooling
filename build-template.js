@@ -12,6 +12,7 @@ const env = new Twing.TwingEnvironment(loader, {
 
 const objectify = (obj, [k, v]) => ({ ...obj, [k]: v });
 
+env.addFilter(new Twing.TwingFilter('json_stringify', async input => JSON.stringify(input || {})));
 env.addFilter(new Twing.TwingFilter('cast_to_array', async input => input));
 env.addFilter(new Twing.TwingFilter('normalize_type', async input => input.replace(/\*/g, 'Ptr')));
 env.addFilter(new Twing.TwingFilter('strip_author', async input => input));

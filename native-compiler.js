@@ -86,7 +86,15 @@ function runCompile(ast) {
 
     native.name = cFunc.Name;
     native.results = cFunc.Return.trim().replace(' *', '*');
-    native.params = cFunc.Parameters.map(({ name, type }) => ({ name, type: type.replace(' *', '*') }));
+    native.params = cFunc.Parameters.map(({ name, type, annotations }) => ({ name, type: type.replace(' *', '*'), annotations }));
+    native.annotations = cFunc.Annotations;
+
+    if (cAst.Enums.length > 0) {
+        native.enums = Object.fromEntries(cAst.Enums.map(({ name, values }) => [
+            name,
+            Object.fromEntries(values.map(({ name, value }) => [ name, value ]))
+        ]));
+    }
     
     function hashString(key) {
         var hash = 0, i = key.length;

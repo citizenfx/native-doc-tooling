@@ -2,28 +2,65 @@ const libclang = require('libclang');
 
 module.exports = function(filename) {
     const idx = new libclang.Index();
-
     const tu = libclang.TranslationUnit.fromSource(idx, filename, ['-Xclang', '-fsyntax-only', '-std=c++11']);
 
     const cData = {
-        Functions: []
+        Functions: [],
+        Enums: [],
     };
 
     tu.cursor.visitChildren(function(parent) {
         const cursor = this;
 
         switch (cursor.kind) {
+            case libclang.Cursor.EnumDecl:
+                const enumName = cursor.spelling;
+                const constants = [];
+
+                cursor.visitChildren(function(parent) {
+                    const cursor = this;
+
+                    if (cursor.kind === libclang.Cursor.EnumConstantDecl) {
+                        const constName = cursor.spelling;
+                        let constValue = cursor.enumValue;
+
+                        console.log(cursor.getComment());
+
+                        constants.push({
+                            name: constName,
+                            value: constValue
+                        });
+                    }
+
+                    return libclang.Cursor.Continue;
+                });
+
+                cData.Enums.push({
+                    name: enumName,
+                    values: constants
+                });
+
+                return libclang.Cursor.Continue;
             case libclang.Cursor.FunctionDecl:
             case libclang.Cursor.ObjCInstanceMethodDecl:
                 const returnType = cursor.type.spelling.replace(/ ?\([^\(]+$/, '');
                 const funcName = cursor.spelling;
 
                 const params = [];
+                const fnAnnotations = {};
 
                 cursor.visitChildren(function(parent) {
                     const cursor = this;
 
-                    if (cursor.kind === libclang.Cursor.ParmDecl) {
+                    if (cursor.kind === libclang.Cursor.AnnotateAttr) {
+                        const [type, value] = cursor.spelling.split(':', 2);
+
+                        if (value) {
+                            fnAnnotations[type] = value;
+                        } else {
+                            fnAnnotations[type] = true;
+                        }
+                    } else if (cursor.kind === libclang.Cursor.ParmDecl) {
                         const paramName = cursor.spelling;
 
                         const type = cursor.type;
@@ -33,7 +70,29 @@ module.exports = function(filename) {
                             paramType = cursor.type.spelling;
                         }
 
-                        params.push({ name: paramName, type: paramType });
+                        const annotations = {};
+
+                        cursor.visitChildren(function(parent) {
+                            const cursor = this;
+
+                            if (cursor.kind === libclang.Cursor.AnnotateAttr) {
+                                const [type, value] = cursor.spelling.split(':', 2);
+
+                                if (value) {
+                                    annotations[type] = value;
+                                } else {
+                                    annotations[type] = true;
+                                }
+                            }
+
+                            return libclang.Cursor.Continue;
+                        });
+
+                        params.push({
+                            name: paramName,
+                            type: paramType,
+                            annotations: Object.keys(annotations).length > 0 ? annotations : undefined
+                        });
                     }
 
                     return libclang.Cursor.Continue;
@@ -42,7 +101,8 @@ module.exports = function(filename) {
                 cData.Functions.push({
                     Name: funcName,
                     Return: returnType,
-                    Parameters: params
+                    Parameters: params,
+                    Annotations: Object.keys(fnAnnotations).length > 0 ? fnAnnotations : undefined
                 });
 
                 return libclang.Cursor.Continue;
