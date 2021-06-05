@@ -5,7 +5,7 @@
   "license": "MIT",
   "dependencies": {
     "highlight.js": "^10.3.1",
-    "libclang": "https://github.com/citizenfx/node-libclang.git",
+    "libclang": "git+https://github.com/citizenfx/node-libclang.git#v0.0.12",
     "mdast-util-heading-range": "^2.1.4",
     "minimatch": "^3.0.4",
     "node-gyp": "^7.1.2",
@@ -23,10 +23,5 @@
     "twing": "^5.0.2",
     "unified": "^9.2.0",
     "worker-farm": "^1.7.0"
-  },
-  "resolutions": {
-    "ffi-napi": "^3.0.1",
-    "ref-napi": "^3.0.1",
-    "node-addon-api": "^3.0.2"
   }
 }
