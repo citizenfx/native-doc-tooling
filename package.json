@@ -23,5 +23,8 @@
     "twing": "^5.0.2",
     "unified": "^9.2.0",
     "worker-farm": "^1.7.0"
+  },
+  "resolutions": {
+    "ref-napi": "git+https://github.com/citizenfx/ref-napi#v3.0.4"
   }
 }
