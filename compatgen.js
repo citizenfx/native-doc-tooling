@@ -178,7 +178,6 @@ function WrapTypes(returnType, returnIsPtr, parameterString)
 {
 	// get parameter type and replace it with the wrapper type
 	let types = [ WrapType(returnType, returnIsPtr != '') ];
-	if (WrapType(returnType, returnIsPtr != '') == null) console.log(returnType + " " + returnIsPtr);
 	
 	const regexp = /(\w+)(\*?)\s\w+/g;
 	while ((match = regexp.exec(parameterString)) !== null)
@@ -312,67 +311,77 @@ async function ParsePreviousLuaCompatibilityFile()
 
 async function ParseFunctionHistory(natives)
 {
-	return new Promise((resolve, reject) =>
+	natives = natives || new Map();
+	let newCompatFunctions = 0;
+	let duplicateCompatFunctions = 0;
+	
+	// we'll get all signatures that were added and removed in the given time or in the latest changes
+	// 
+	// operations:
+	//   git log -G         get all commits with changes to "```c" blocks - or -
+	//   git diff-tree      get changes in latest commit, needs fetch-depth of at least 2
+	
+	const gitHistory = child_process.spawn(useHistory
+		? 'git log -p -G"```c" --oneline --pretty= --after="' + startDate + `"`
+		: "git diff-tree HEAD --cc --oneline --pretty= ", { shell: true });
+	
+	const lineReader = readline.createInterface({ input: gitHistory.stdout });
+	
+	const regexCBlockStart = /^[+ ]```c/;
+	const regexCBlockEnd = /^[+ ]```/;
+	const regexHash = /^[+ ]\/\/\s(0x\w+)/;
+	const regexMethod = /^[+-]\s*(\w+)\s*(\*?)\s+[\w_]+\s?\((.*?)\)/;
+	const regexMethodCleanUp = /cs_type\(\w*\*?\)\s*|const\s+/g;      // remove all "cs_type(*) " and "const "
+	
+	let inCBlock = false;
+	let curNative = null;
+	
+	for await (const line of lineReader)
 	{
-		natives = natives || new Map();
-		let newCompatFunctions = 0;
-		
-		// we'll all sgnatures, including added and removed
-		// 
-		// operation in order:
-		//   git log -G         get all commits with a c style function signature (with added "cs_type(*)" recognition - or -
-		//   git diff-tree      get changes in latest commit, needs fetch-depth of at least 2
-		//
-		//   sed                get lines between "```c" and "```", properly handling "-```" lines
-		//   grep -Po           filter for native's hexadecimal and all signatures
-		//   sed                remove all "cs_type(*) " and "const "
-		
-		const gitHistory = child_process.spawn(
-			(useHistory
-				? String.raw`git log -p -G"^(cs_type\(.+\)[ \t])?\w+[ \t]\w+\(.*\)" --oneline --pretty= --after="` + startDate + `"`
-				: "git diff-tree HEAD --cc --oneline --pretty= "
-			) +
-			/*      */" | sed -n -e '/[+ ]```c$/,/[+ ]```/{/```$/!p}'" +
-			String.raw` | grep -Po "(//\s0x\w*|(^[+-](cs_type\(\w*\)[ \t])?\w+[ \t]\w+\(.*\);?))"` +
-			String.raw` | sed -E "s/(cs_type\(\w*\*?\) )|const //Ig"`, { shell: true });
-		
-		gitHistory.stdout.on('data', (data) =>
-		{			
-			const regexStart = /\/\/\s[^/]*/g;
-			const regexHash = /\/\/\s(0x\w+)/;
-			const regexMethod = /[+-](\w+)(\*?)\s+[\w_]+\s?\((.*?)\)/g;
-			
-			while ((match = regexStart.exec(data.toString())) !== null)
+		if (inCBlock)
+		{
+			if (regexCBlockEnd.test(line))
 			{
-				const curLine = match[0];
-				if (curLine != "")
-				{			
-					// not supporting hash-less functions
-					if ((hashMatch = regexHash.exec(curLine)) !== null)
+				inCBlock = false;
+				curNative = null;
+			}
+			else
+			{
+				// not supporting hash-less functions
+				if ((hashMatch = regexHash.exec(line)) !== null)
+				{				
+					const hash = BigInt(hashMatch[1]);
+					if (!(curNative = natives.get(hash)))
 					{
-						const hash = BigInt(hashMatch[1]);
-						
-						let curNative = natives.get(hash);
-						if (!curNative)
+						natives.set(hash, curNative = []);
+					}
+				}
+				else if (curNative)
+				{						
+					const cleanedUpLine = line.replace(regexMethodCleanUp, '');						
+					if ((signatureMatch = regexMethod.exec(cleanedUpLine)) !== null)
+					{
+						const [_, result, ptr, parameters] = signatureMatch;
+						if (InsertIfNotExisting(curNative, WrapTypes(result, ptr, parameters)))
 						{
-							natives.set(hash, curNative = []);
+							++newCompatFunctions;
 						}
-						
-						while ((signatureMatch = regexMethod.exec(curLine)) !== null)
+						else
 						{
-							const [_, result, ptr, parameters] = signatureMatch;
-							if (InsertIfNotExisting(curNative, WrapTypes(result, ptr, parameters)))
-							{
-								++newCompatFunctions;
-							}
+							++duplicateCompatFunctions;
 						}
 					}
 				}
-			}
-		});
-		
-		gitHistory.on('close', () => resolve([ natives, newCompatFunctions ]));
-	});
+			}			
+		}
+		else if (regexCBlockStart.test(line))
+		{
+			inCBlock = true;
+			curNative = null;
+		}
+	}
+	
+	return [ natives, newCompatFunctions, duplicateCompatFunctions ];
 }
 
 (async function()
@@ -390,7 +399,8 @@ async function ParseFunctionHistory(natives)
 			nextVersion[3] = daysSinceStart === prevVersion[2] ? prevVersion[3] + 1 : 0;
 		}
 		
-		const [ natives, newCompatFunctions ] = await ParseFunctionHistory(prevNatives);
+		const [ natives, newCompatFunctions, duplicateCompatFunctions ] = await ParseFunctionHistory(prevNatives);		
+		process.stdout.write(newCompatFunctions + " change(s) & " + duplicateCompatFunctions + " duplicate(s) found.\n");
 		
 		if (outputFile && (forceUpdate || newCompatFunctions > 0))
 		{
@@ -426,12 +436,12 @@ async function ParseFunctionHistory(natives)
 			file.close();
 			
 			
-			process.stdout.write(newCompatFunctions + " change(s) found, compatibility file generated at '" + outputFile + "'\n");
+			process.stdout.write("Compatibility file generated at '" + outputFile + "'\n");
 			//process.exit(0);
 			return;
 		}
 		
-		process.stdout.write(newCompatFunctions + " change(s) found, skipped compatibility file generation.\n");
+		process.stdout.write("Skipped compatibility file generation.\n");
 	}
 	catch(exc)
 	{
