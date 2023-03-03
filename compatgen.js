@@ -321,13 +321,13 @@ async function ParseFunctionHistory(natives)
 	//   git log -G         get all commits with changes to "```c" blocks - or -
 	//   git diff-tree      get changes in latest commit, needs fetch-depth of at least 2
 	
-	const gitHistory = child_process.spawn(useHistory
-		? 'git log -p -G"```c" --oneline --pretty= --after="' + startDate + `"`
-		: "git diff-tree HEAD --cc --oneline --pretty= ", { shell: true });
-	
+	const gitHistory = child_process.spawn("git", useHistory
+		? [ "log", "-p", '-G```c\\s*$', "--oneline", "--pretty=", '--after="' + startDate + '"' ]
+		: [ "diff-tree", "HEAD", "--cc", "--oneline", "--pretty=" ], { windowsVerbatimArguments: true });
+			
 	const lineReader = readline.createInterface({ input: gitHistory.stdout });
 	
-	const regexCBlockStart = /^[+ ]```c/;
+	const regexCBlockStart = /^[+ ]```c\s*$/;
 	const regexCBlockEnd = /^[+ ]```/;
 	const regexHash = /^[+ ]\/\/\s(0x\w+)/;
 	const regexMethod = /^[+-]\s*(\w+)\s*(\*?)\s+[\w_]+\s?\((.*?)\)/;
