@@ -25,6 +25,13 @@ typedef int TaskSequence;
 typedef int ColourIndex;
 typedef int Sphere;
 typedef int ScrHandle;
+typedef int ItemSet;
+typedef int AnimScene;
+typedef int PersChar;
+typedef int PopZone;
+typedef int Prompt;
+typedef int PropSet;
+typedef int Volume;
 
 typedef struct
 {
