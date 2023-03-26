@@ -263,14 +263,13 @@ async function ParsePreviousLuaCompatibilityFile()
 							if ((typeMatch = line.match(/(?<=[,{]\s*")[^"]*/g)) !== null)
 							{
 								currentNative.push(typeMatch);
+								++changes;
 							}
 							else
 							{
 								process.stderr.write("Unexpected Lua format, expecting a Lua array with strings, on line " + lineNumber + ", got `" + line + "`\n");
 								process.exit(4);
 							}
-							
-							++changes;
 						}
 						else
 						{
@@ -319,12 +318,14 @@ async function ParseFunctionHistory(natives)
 	// 
 	// operations:
 	//   git log -G         get all commits with changes to "```c" blocks - or -
-	//   git diff-tree      get changes in latest commit, needs fetch-depth of at least 2
+	//   git log -1 -m      get changes in latest commit, accepting merges, ignoring grafted commits,
+	//                      needs fetch-depth of at least 2
 	
 	const gitHistory = child_process.spawn("git", useHistory
 		? [ "log", "-p", '-G```c\\s*$', "--oneline", "--pretty=", '--after="' + startDate + '"' ]
-		: [ "diff-tree", "HEAD", "--cc", "--oneline", "--pretty=" ], { windowsVerbatimArguments: true });
-			
+		: [ "log", "-p", "-1", "-m", "--oneline", "--pretty=", "--min-parents=1" ],
+		{ windowsVerbatimArguments: true });
+	
 	const lineReader = readline.createInterface({ input: gitHistory.stdout });
 	
 	const regexCBlockStart = /^[+ ]```c\s*$/;
@@ -349,7 +350,7 @@ async function ParseFunctionHistory(natives)
 			{
 				// not supporting hash-less functions
 				if ((hashMatch = regexHash.exec(line)) !== null)
-				{				
+				{
 					const hash = BigInt(hashMatch[1]);
 					if (!(curNative = natives.get(hash)))
 					{
@@ -357,8 +358,8 @@ async function ParseFunctionHistory(natives)
 					}
 				}
 				else if (curNative)
-				{						
-					const cleanedUpLine = line.replace(regexMethodCleanUp, '');						
+				{
+					const cleanedUpLine = line.replace(regexMethodCleanUp, '');
 					if ((signatureMatch = regexMethod.exec(cleanedUpLine)) !== null)
 					{
 						const [_, result, ptr, parameters] = signatureMatch;
@@ -372,7 +373,7 @@ async function ParseFunctionHistory(natives)
 						}
 					}
 				}
-			}			
+			}
 		}
 		else if (regexCBlockStart.test(line))
 		{
@@ -389,7 +390,7 @@ async function ParseFunctionHistory(natives)
 	try
 	{
 		const [ prevNatives, prevVersion, prevCompatChanges ] = await ParsePreviousLuaCompatibilityFile();
-		process.stdout.write("Loaded " + prevNatives.size + " previous native signatures.\n");
+		process.stdout.write("Loaded " + prevCompatChanges + " previous native signatures for " + prevNatives.size + " natives.\n");
 		
 		// the version with 4 elements will override the normal counting
 		if (nextVersion.length != 4)
