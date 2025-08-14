@@ -20,6 +20,6 @@ module.exports = (input, cb) => {
 
         cb(null, nativeData);
     } catch (e) {
-        cb(e.toString());
+        cb(`Failed on ${input} with error ${e.toString()}`);
     }
 };
