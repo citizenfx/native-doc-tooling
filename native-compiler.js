@@ -79,7 +79,7 @@ function runCompile(ast) {
     codeFile.removeCallback();
     
     if (cAst.Functions.length !== 1) {
-        throw new ParseError('C code snippet contained wrong amount of functions.');
+        throw new ParseError('C code snippet contained wrong amount of functions. - ' + code);
     }
     
     const cFunc = cAst.Functions[0];
